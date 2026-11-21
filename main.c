@@ -1,3 +1,5 @@
+#include <asm-generic/errno-base.h>
+#include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -38,11 +40,15 @@ int main(void) {
             return 0;
         } else if (ferror(stdin)) {
             perror("stdin");
+            free(line);
             exit(EXIT_FAILURE);
         }
 
         argv = parse_command(line, &argc);
-
+        if (argv == NULL) {
+            perror("Failed to parse command");
+            continue;
+        }
         if (argc == 0) {
             free_command(argv);
             continue;
@@ -90,8 +96,8 @@ char **parse_command(char *line, int *argc) {
         strings[i] = calloc(strlen(token) + 1, sizeof(char));
         if (!strings[i]) {
             perror("malloc string element");
-            strings[i] = NULL;
-            return strings;
+            free_command(strings);
+            return NULL;
         }
         strcpy(strings[i], token);
     }
@@ -113,7 +119,9 @@ int execute_command(char *const argv[], int timeout_seconds) {
     default: {
         int status;
         pid_t result;
-        result = waitpid(pid, &status, 0);
+        do {
+            result = waitpid(pid, &status, 0);
+        } while (result == -1 && errno == EINTR);
         if (WIFSIGNALED(status)) {
             printf("Child terminated by signal %d\n", WTERMSIG(status));
         } else if (WIFEXITED(status)) {

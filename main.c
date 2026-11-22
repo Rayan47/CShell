@@ -13,6 +13,8 @@ char **parse_command(char *line, int *argc);
 
 int execute_command(char *const argv[], int timeout_seconds);
 
+int execute_internal(char *const argv[], int *argc);
+
 void free_command(char **argv);
 
 void print_child_status(pid_t pid, int status);
@@ -28,7 +30,7 @@ int main(void) {
     char **argv = NULL;
 
     do {
-        printf("shell>");
+        printf("shell@%s>", getcwd(NULL, 0));
         fflush(stdout);
 
         n_chars = getline(&line, &size, stdin);
@@ -60,9 +62,11 @@ int main(void) {
             free_command(argv);
             return 0;
         }
-
-        execute_command(argv, -1);
+        if (execute_internal(argv, &argc) == 0) {
+            execute_command(argv, -1);
+        }
         free_command(argv);
+        argv = NULL;
     } while (true);
 }
 
@@ -122,6 +126,11 @@ int execute_command(char *const argv[], int timeout_seconds) {
         do {
             result = waitpid(pid, &status, 0);
         } while (result == -1 && errno == EINTR);
+
+        if (result == -1) {
+            perror("waitpid");
+            return 1;
+        }
         if (WIFSIGNALED(status)) {
             printf("Child terminated by signal %d\n", WTERMSIG(status));
         } else if (WIFEXITED(status)) {
@@ -140,4 +149,15 @@ void free_command(char **argv) {
         free(argv[i]);
     }
     free(argv);
+}
+
+int execute_internal(char *const argv[], int *argc) {
+    if (strcmp(argv[0], "cd") == 0) {
+        chdir(argv[1]);
+        return 1;
+    } else if (strcmp(argv[0], "pwd") == 0) {
+        printf("%s\n", getcwd(NULL, 0));
+        return 1;
+    }
+    return 0;
 }

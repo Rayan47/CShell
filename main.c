@@ -1,6 +1,4 @@
-#include <asm-generic/errno-base.h>
 #include <errno.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +28,14 @@ int main(void) {
     char **argv = NULL;
 
     do {
-        printf("shell@%s>", getcwd(NULL, 0));
+        char *cwd = getcwd(NULL, 0);
+        if (cwd == NULL) {
+            perror("getcwd");
+            printf("shell>");
+        } else {
+            printf("shell@%s>", cwd);
+            free(cwd);
+        }
         fflush(stdout);
 
         n_chars = getline(&line, &size, stdin);
@@ -153,10 +158,29 @@ void free_command(char **argv) {
 
 int execute_internal(char *const argv[], int *argc) {
     if (strcmp(argv[0], "cd") == 0) {
-        chdir(argv[1]);
+        char *path;
+        if (argv[1] == NULL) {
+            path = getenv("HOME");
+        } else {
+            path = argv[1];
+        }
+        int res = chdir(argv[1]);
+        if (argv[1] != path) {
+            free(path);
+        }
+        if (res == -1) {
+            perror("cd");
+            return 3;
+        }
         return 1;
     } else if (strcmp(argv[0], "pwd") == 0) {
-        printf("%s\n", getcwd(NULL, 0));
+        char *cwd = getcwd(NULL, 0);
+        if (cwd == NULL) {
+            perror("getcwd");
+            return 2;
+        }
+        printf("%s\n", cwd);
+        free(cwd);
         return 1;
     }
     return 0;

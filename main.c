@@ -26,6 +26,15 @@ int main(void) {
     char **argv = NULL;
 
     do {
+        if (line != NULL) {
+            free(line);
+            line = NULL;
+        }
+        if (argv != NULL) {
+            free_command(argv);
+            argv = NULL;
+        }
+        argc = 0;
         char *cwd = getcwd(NULL, 0);
         if (cwd == NULL) {
             perror("getcwd");
@@ -54,8 +63,6 @@ int main(void) {
             continue;
         }
         if (argc == 0) {
-            free_command(argv);
-            argv = NULL;
             continue;
         }
 
@@ -69,8 +76,6 @@ int main(void) {
         if (execute_internal(argv) == 0) {
             execute_command(argv, -1);
         }
-        free_command(argv);
-        argv = NULL;
     } while (true);
 }
 

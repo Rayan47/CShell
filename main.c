@@ -11,11 +11,9 @@ char **parse_command(char *line, int *argc);
 
 int execute_command(char *const argv[], int timeout_seconds);
 
-int execute_internal(char *const argv[], int *argc);
+int execute_internal(char *const argv[]);
 
 void free_command(char **argv);
-
-void print_child_status(pid_t pid, int status);
 
 int main(void) {
 
@@ -67,11 +65,10 @@ int main(void) {
             free_command(argv);
             return 0;
         }
-        if (execute_internal(argv, &argc) == 0) {
+        if (execute_internal(argv) == 0) {
             execute_command(argv, -1);
         }
         free_command(argv);
-        argv = NULL;
     } while (true);
 }
 
@@ -154,9 +151,10 @@ void free_command(char **argv) {
         free(argv[i]);
     }
     free(argv);
+    argv = NULL;
 }
 
-int execute_internal(char *const argv[], int *argc) {
+int execute_internal(char *const argv[]) {
     if (strcmp(argv[0], "cd") == 0) {
         char *path;
         if (argv[1] == NULL) {
@@ -164,10 +162,7 @@ int execute_internal(char *const argv[], int *argc) {
         } else {
             path = argv[1];
         }
-        int res = chdir(argv[1]);
-        if (argv[1] != path) {
-            free(path);
-        }
+        int res = chdir(path);
         if (res == -1) {
             perror("cd");
             return 3;

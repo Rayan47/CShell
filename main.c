@@ -41,7 +41,6 @@ int main(void) {
         if (feof(stdin)) {
             printf("Goodbye!\n");
             free(line);
-            free_command(argv);
             return 0;
         } else if (ferror(stdin)) {
             perror("stdin");
@@ -56,6 +55,7 @@ int main(void) {
         }
         if (argc == 0) {
             free_command(argv);
+            argv = NULL;
             continue;
         }
 
@@ -63,12 +63,14 @@ int main(void) {
             printf("Goodbye!\n");
             free(line);
             free_command(argv);
+            argv = NULL;
             return 0;
         }
         if (execute_internal(argv) == 0) {
             execute_command(argv, -1);
         }
         free_command(argv);
+        argv = NULL;
     } while (true);
 }
 
@@ -151,7 +153,6 @@ void free_command(char **argv) {
         free(argv[i]);
     }
     free(argv);
-    argv = NULL;
 }
 
 int execute_internal(char *const argv[]) {
